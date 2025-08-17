@@ -18,11 +18,6 @@ description:{
      type: mongoose.Schema.Types.ObjectId, ref: 'Category',
       required: true },
 
-isTopBrand: {
-  type: Boolean,
-  default: false,
-}
-
 })
 
 export  const Brand = mongoose.model("Brand", brandSchema);

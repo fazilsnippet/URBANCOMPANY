@@ -1,33 +1,37 @@
 import mongoose from 'mongoose';
-
+import bcrypt from "bcrypt"
 const AddressSchema = new mongoose.Schema({
-  label: { type: String },
-  line1: String,
-  line2: String,
-  city: String,
-  state: String,
-  pincode: String,
-  coordinates: { type: { type: String, enum: ['Point'], default: 'Point' }, coordinates: [Number] },
-}, { _id: false });
+  label: { type: String, required: true }, // e.g., Home, Office
+  line1: { type: String, required: true },
+  line2: { type: String },
+  city: { type: String, required: true },
+  state: { type: String, required: true },
+  pincode: { type: String, required: true },
+  location: {
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: { type: [Number], default: [0, 0] },
+  },
+  isDefault: { type: Boolean, default: false },
+});
+
 
 const userSchema = new mongoose.Schema(
   {
     avatar: {
       type: String,
     }, 
+phone:{
+  type: Number ,
+  required:true,
+  unique:true,
+},
+    name: {
+      type: String,
+      required: [true, "name is required"],
+      lowercase: true,
+      trim: true,
+    },
 
-    userName: {
-      type: String,
-      required: [true, "Username is required"],
-      lowercase: true,
-      trim: true,
-    },
-    fullName: {
-      type: String,
-      required: [true, "Full name is required"],
-      lowercase: true,
-      trim: true,
-    },
     email: {
       type: String,
       required: [true, "Email is required"],
@@ -61,9 +65,11 @@ const userSchema = new mongoose.Schema(
         type: Boolean,
       default: false
     },      
-      role: { type: String, enum: ['customer','partner','admin'], default: 'customer', index: true },
-      addresses: [AddressSchema],
-    },
+  roles: { type: [String], enum: ['customer','partner','admin'], default: ['customer'] },
+  addresses: {
+    type: [AddressSchema],
+    validate: [arrayLimit, '{PATH} exceeds the limit of 5']
+  }    },
   {
     timestamps: true,
     versionKey: false 
@@ -88,7 +94,7 @@ userSchema.methods.generateAccessToken = function () {
     {
       id: this._id.toString(), // Change _id to id
       email: this.email,
-      userName: this.userName,
+      name: this.name,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
@@ -134,3 +140,46 @@ userSchema.methods.setNewPassword = async function (newPassword) {
 };
 
 export  const User = mongoose.model("User", userSchema);
+
+//new
+
+// import mongoose from 'mongoose';
+// import bcrypt from 'bcrypt';
+
+// const addressSchema = new mongoose.Schema({
+//   label: String,
+//   line1: String,
+//   line2: String,
+//   city: String,
+//   state: String,
+//   country: String,
+//   pincode: String,
+//   location: { type: { type: String, enum: ['Point'] }, coordinates: [Number] } // [lng, lat]
+// }, { _id: false });
+
+// addressSchema.index({ location: '2dsphere' });
+
+// const userSchema = new mongoose.Schema({
+//   name: { type: String, required: true, trim: true },
+//   email: { type: String, lowercase: true, unique: true, sparse: true },
+//   phone: { type: String, unique: true, sparse: true },
+//   passwordHash: { type: String, required: true, select: false },
+//   roles: { type: [String], enum: ['customer','partner','admin'], default: ['customer'] },
+//   avatarUrl: String,
+//   addresses: [addressSchema],
+//   isActive: { type: Boolean, default: true },
+//   passwordChangedAt: Date,
+//   resetTokenHash: { type: String, select: false },
+//   resetTokenExpiresAt: Date,
+//   lastLoginAt: Date
+// }, { timestamps: true });
+
+// userSchema.index({ isActive: 1 });
+// userSchema.methods.verifyPassword = function (pwd) {
+//   return bcrypt.compare(pwd, this.passwordHash);
+// };
+// userSchema.pre('save', async function() {
+//   if (this.isModified('passwordHash')) this.passwordChangedAt = new Date();
+// });
+
+// export const User = mongoose.model('User', userSchema);

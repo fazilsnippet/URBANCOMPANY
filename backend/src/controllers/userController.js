@@ -60,11 +60,11 @@ export const generateAccessTokenAndRefreshToken = async (userId) => {
 });
 
 
- const registerUser = asyncHandler(async (req, res) => {
-  const { fullName, email, userName, password, phone, otp, addresses } = req.body;
+const registerUser = asyncHandler(async (req, res) => {
+  let { email, name, password, phone, otp, addresses } = req.body;
 
   // Validate required fields
-  if ([fullName, email, userName, password, otp].some((field) => !field?.trim())) {
+  if ([email, name, password, otp].some((field) => !field?.trim())) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -74,7 +74,9 @@ export const generateAccessTokenAndRefreshToken = async (userId) => {
   if (otpRecord.expiresAt < new Date()) throw new ApiError(400, "OTP expired");
 
   // Check if user exists
-  const existedUser = await User.findOne({ $or: [{ userName }, { email }] });
+  const existedUser = await User.findOne({
+    $or: [{ name }, { email }, { phone }]
+  });
   if (existedUser) throw new ApiError(409, "User already exists");
 
   // Delete OTP record
@@ -88,27 +90,37 @@ export const generateAccessTokenAndRefreshToken = async (userId) => {
     else throw new ApiError(500, "Avatar upload failed");
   }
 
+  // ✅ Handle addresses (if sent as string in multipart/form-data)
+  if (typeof addresses === "string") {
+    try {
+      addresses = JSON.parse(addresses);
+    } catch {
+      throw new ApiError(400, "Invalid addresses format");
+    }
+  }
+
+  // ✅ Ensure addresses is an array (even if empty)
+  if (!Array.isArray(addresses)) {
+    addresses = [];
+  }
+
   // Create user
   const user = await User.create({
-    fullName,
     email,
-    userName,
+    name,
     password,
     phone,
     avatar: avatarUrl,
-    addresses
+    addresses // will save as array of objects
   });
 
-  // Generate tokens
-//   const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id);
-
   // Get safe user object
-  const userWithoutPassword = await User.findById(user._id).select("-password -refreshToken");
+  const userWithoutPassword = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
   return res.status(201).json({
     user: userWithoutPassword,
-    // accessToken,
-    // refreshToken,
     message: "User registered successfully",
   });
 });
@@ -118,14 +130,14 @@ export const generateAccessTokenAndRefreshToken = async (userId) => {
 
 
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, userName, password } = req.body;
+  const { email, name, password } = req.body;
 
-  if ((!email && !userName) || !password) {
-    throw new ApiError(400, "Please provide both email/username and password");
+  if ((!email && !name) || !password) {
+    throw new ApiError(400, "Please provide both email/name and password");
   }
 
-  const user = await User.findOne({ $or: [{ userName }, { email }] });
-  if (!user) throw new ApiError(404, "Username or email does not exist");
+  const user = await User.findOne({ $or: [{ name }, { email }] });
+  if (!user) throw new ApiError(404, "name or email does not exist");
 
   const isPasswordValid = await user.isPasswordCorrect(password);
   if (!isPasswordValid) throw new ApiError(409, "Invalid user password");
@@ -222,14 +234,14 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
- const { fullName, email } = req.body;
+ const { name,  email } = req.body;
   const userId = req.user?._id;
 
   if (!userId) {
     throw new ApiError(401, "Unauthorized     please login");
   }
 
-  if (!fullName || !email) {
+  if (!name || !email) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -244,7 +256,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
   }
 
   const updates = {
-    fullName,
+    name,
     email,
   };
 
@@ -268,78 +280,27 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
 
 
-
- const updateUserAddress = asyncHandler(async (req, res) => {
-  const userId = req.user?._id;
-
-  if (!userId) {
-    throw new ApiError(401, "Unauthorized  please login");
-  }
-
-  let { addresses } = req.body;
-
-  if (!addresses) {
-    throw new ApiError(400, "all the address fields are required !!!");
-  }
-
-  // If address is stringified JSON (common in multipart/form-data), parse it
-  if (typeof addresses === "string") {
-    try {
-      addresses = JSON.parse(address);
-    } catch {
-      throw new ApiError(400, "Invalid address format");
-    }
-  }
-
-  const updateFields = {
-    ...(addresses.line1 && { "addresses.line1": addresses.line1 }),
-        ...(addresses.line2 && { "addresses.line2": addresses.line2 }),
-
-    ...(addresses.city && { "address.city": addresses.city }),
-    ...(addresses.state && { "address.state": addresses.state }),
-    ...(addresses.pincode && { "address.postalCode": addresses.postalCode }),
-    ...(addresses.country && { "address.country": addresses.country }),
-  };
-
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    { $set: updateFields },
-    { new: true }
-  ).select("-password");
-
-  if (!updatedUser) {
-    throw new ApiError(404, "User not found");
-  }
-
-  return res.status(200).json(
-    new ApiResponse(200, updatedUser.addresses, "Address updated successfully")
-  );
-});
-
-
-
 const userProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user?._id).select("-password -refreshToken");
+  const user = await User.findById(req.user?._id)
+    .select("-password -refreshToken");
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
   const userProfile = {
-    fullName: user?.fullName,
-    email: user?.email,
-    userName: user?.userName,
-    avatar: user?.avatar,
-    addresses: user?.addresses
-    
+    email: user.email,
+    name: user.name,
+    avatar: user.avatar,
+    addresses: user.addresses, 
   };
 
-  
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, userProfile, "User profile fetched successfully"));
+  res.status(200).json(
+    new ApiResponse(200, userProfile, "User profile fetched successfully")
+  );
 });
+
+
 
 
 
@@ -353,7 +314,4 @@ export {
   refreshAccessToken,
   changeCurrentPassword,
   updateAccountDetails,
-  updateUserAddress,
-  
-  
 };
