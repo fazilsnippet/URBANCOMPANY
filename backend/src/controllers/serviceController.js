@@ -7,7 +7,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 /**
  * @desc    Create a new service
  */
-export const createService = asyncHandler(async (req, res) => {
+ const createService = asyncHandler(async (req, res) => {
   const {
     title,
     partner,
@@ -51,10 +51,10 @@ export const createService = asyncHandler(async (req, res) => {
 /**
  * @desc    Update a service
  */
-export const updateService = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+ const updateService = asyncHandler(async (req, res) => {
+  const { serviceId } = req.params;
 
-  let service = await Service.findById(id);
+  let service = await Service.findById(serviceId);
   if (!service) throw new ApiError(404, "Service not found");
 
   // If title changes, regenerate slug
@@ -70,10 +70,10 @@ export const updateService = asyncHandler(async (req, res) => {
 /**
  * @desc    Delete a service
  */
-export const deleteService = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const deleteService = asyncHandler(async (req, res) => {
+  const { serviceId } = req.params;
 
-  const service = await Service.findByIdAndDelete(id);
+  const service = await Service.findByIdAndDelete(serviceId);
   if (!service) throw new ApiError(404, "Service not found");
 
   return res.json(new ApiResponse(200, {}, "Service deleted successfully"));
@@ -82,10 +82,10 @@ export const deleteService = asyncHandler(async (req, res) => {
 /**
  * @desc    Toggle service active/inactive
  */
-export const toggleServiceActive = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const toggleServiceActive = asyncHandler(async (req, res) => {
+  const { serviceId } = req.params;
 
-  const service = await Service.findById(id);
+  const service = await Service.findById(serviceId);
   if (!service) throw new ApiError(404, "Service not found");
 
   service.isActive = !service.isActive;
@@ -103,10 +103,10 @@ export const toggleServiceActive = asyncHandler(async (req, res) => {
 /**
  * @desc    Get service by ID
  */
-export const getServiceById = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const getServiceById = asyncHandler(async (req, res) => {
+  const { serviceId } = req.params;
 
-  const service = await Service.findById(id)
+  const service = await Service.findById(serviceId)
     .populate("partner", "name")
     .populate("mainCategory", "name")
     .populate("suCategories", "name");
@@ -119,7 +119,7 @@ export const getServiceById = asyncHandler(async (req, res) => {
 /**
  * @desc    Get all services (with filters + pagination)
  */
-export const getAllServices = asyncHandler(async (req, res) => {
+  const getAllServices = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, isActive, partner } = req.query;
   const query = {};
 
@@ -143,7 +143,7 @@ export const getAllServices = asyncHandler(async (req, res) => {
 /**
  * @desc    Get services by category (main or sub)
  */
-export const getServicesByCategory = asyncHandler(async (req, res) => {
+  const getServicesByCategory = asyncHandler(async (req, res) => {
   const { categoryId } = req.params;
 
   const services = await Service.find({
@@ -158,3 +158,6 @@ export const getServicesByCategory = asyncHandler(async (req, res) => {
     new ApiResponse(200, services, "Services by category fetched successfully")
   );
 });
+
+
+export default {createService, getServiceById, getAllServices, getServicesByCategory, deleteService, updateService, toggleServiceActive}

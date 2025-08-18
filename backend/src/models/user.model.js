@@ -65,7 +65,7 @@ phone:{
         type: Boolean,
       default: false
     },      
-  roles: { type: [String], enum: ['customer','partner','admin'], default: ['customer'] },
+role: { type: String, enum: ["customer", "partner"], default: "customer" },
   addresses: {
     type: [AddressSchema],
     validate: [arrayLimit, '{PATH} exceeds the limit of 5']

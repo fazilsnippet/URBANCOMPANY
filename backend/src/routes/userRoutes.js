@@ -1,17 +1,10 @@
 import express from 'express'
 
-const userRoutes = express.Router();
 
-export default userRoutes
 import express from "express";
-import {
-registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,
-updateAccountDetails,userProfile,updateUserAddress, addRecentlyViewedProduct,
-  getRecentlyViewedProducts,sendSignupOtp,
-} from "../controllers/user.controller.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";  // Assuming you have an auth middleware to verify JWT token
-import { getAllUsers } from "../controllers/admin.controller.js";
-import { upload } from "../middleware/multer.middleware.js";
+import {deleteUserAddress, addUserAddress, switchUserAddress, updateUserAddress} from "../controllers/userAddressController.js"
+import { verifyuser } from "../middlewares/authMiddleware.js";  // Assuming you have an auth middleware to verify JWT token
+import { upload } from "../middlewares/multer.js";
 
 const userRouter = express.Router();
 
@@ -21,16 +14,17 @@ userRouter.post("/login", loginUser);  // Login user
 userRouter.post("/register/sendotp", sendSignupOtp);
 
 // Protected Routes (Require JWT)
-userRouter.post("/logout", verifyJWT, logoutUser);  // Logout user
+userRouter.post("/logout",    verifyuser, logoutUser);  // Logout user
 userRouter.post("/refreshtoken", refreshAccessToken);  // Refresh access token
 
-userRouter.put("/changepassword", verifyJWT, changeCurrentPassword);  // Change password
-userRouter.put("/updateaccount", verifyJWT, upload.single("avatar"), updateAccountDetails);  // Update user account details
-userRouter.get("/profile", verifyJWT, userProfile);  // Get user profile
-userRouter.get("/all", getAllUsers);
-userRouter.put("/updateaddress", verifyJWT, updateUserAddress);  // Update user address
-userRouter.post("/products/:productId/addrecentlyviewedproduct", verifyJWT, addRecentlyViewedProduct); 
-userRouter.get("/recentlyviewedproducts", verifyJWT, getRecentlyViewedProducts);  // Get recently viewed products
+userRouter.put("/changepassword",    verifyuser, changeCurrentPassword);  // Change password
+userRouter.put("/updateaccount",    verifyuser, upload.single("avatar"), updateAccountDetails);  // Update user account details
+userRouter.get("/profile",    verifyuser, userProfile);  // Get user profile
+userRouter.post("/address/add",    verifyuser, addUserAddress);  // Update user address
+userRouter.patch("/address/update/:addressId",    verifyuser, updateUserAddress);  // Update user address
+userRouter.delete("/address/:addressId",    verifyuser, deleteUserAddress);  // Update user address
+userRouter.put("/address/change/:addressId",    verifyuser, switchUserAddress);  // Update user address
+
 
 // Add recently viewed product
 // Reset Password (Through a token from forgot-password)

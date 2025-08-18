@@ -8,7 +8,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 
 // ===================== CREATE BOOKING =====================
-export const createBooking = asyncHandler(async (req, res) => {
+   const createBooking = asyncHandler(async (req, res) => {
   const { serviceId, slotId, notes, paymentMethod = "COD" } = req.body;
 
   // Validate service
@@ -64,52 +64,75 @@ export const createBooking = asyncHandler(async (req, res) => {
 
 
 // ===================== CANCEL BOOKING =====================
-export const cancelBooking = asyncHandler(async (req, res) => {
+const cancelBooking = asyncHandler(async (req, res) => {
   const { bookingId } = req.params;
 
-  const booking = await Booking.findById(bookingId).populate("slot service");
-  if (!booking) throw new ApiError(404, "Booking not found");
+  // Start session for atomic updates (optional, but recommended)
+  const session = await Booking.startSession();
+  session.startTransaction();
 
-  if (["cancelled", "completed"].includes(booking.status)) {
-    throw new ApiError(400, "Booking cannot be cancelled");
-  }
+  try {
+    const booking = await Booking.findById(bookingId)
+      .populate("slot service")
+      .session(session);
 
-  booking.status = "cancelled";
-  booking.timeline.push({
-    at: new Date(),
-    status: "cancelled",
-    note: "Booking cancelled by user",
-  });
+    if (!booking) throw new ApiError(404, "Booking not found");
 
-  // Refund logic
-  let refund = null;
-  if (booking.payment.status === "paid") {
-    refund = {
-      amount: booking.amount.grandTotal,
-      currency: booking.amount.currency,
-    };
-    booking.payment.status = "refunded";
+    if (["cancelled", "completed"].includes(booking.status)) {
+      throw new ApiError(400, "Booking cannot be cancelled");
+    }
+
+    booking.status = "cancelled";
     booking.timeline.push({
       at: new Date(),
-      status: "refunded",
-      note: "Refund issued to user",
+      status: "cancelled",
+      note: "Booking cancelled by user",
     });
+
+    // Refund logic
+    let refund = null;
+    if (booking.payment?.status === "paid") {
+      refund = {
+        amount: booking.amount.grandTotal,
+        currency: booking.amount.currency,
+      };
+
+      // 👉 call your payment provider here
+      // await processRefund(booking.payment.paymentId, refund.amount);
+
+      booking.payment.status = "refunded";
+      booking.timeline.push({
+        at: new Date(),
+        status: "refunded",
+        note: "Refund issued to user",
+      });
+    }
+
+    await booking.save({ session });
+
+    // Decrement slot booking count
+    if (booking.slot) {
+      booking.slot.booked = Math.max(0, booking.slot.booked - 1);
+      await booking.slot.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json(
+      new ApiResponse(200, { booking, refund }, "Booking cancelled successfully")
+    );
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  await booking.save();
-
-  // Decrement slot booking count
-  booking.slot.booked = Math.max(0, booking.slot.booked - 1);
-  await booking.slot.save();
-
-  res.json(
-    new ApiResponse(200, { booking, refund }, "Booking cancelled successfully")
-  );
 });
 
 
+
 // ===================== GET BOOKING DETAILS =====================
-export const getBookingDetails = asyncHandler(async (req, res) => {
+   const getBookingDetails = asyncHandler(async (req, res) => {
   const { bookingId } = req.params;
 
   const result = await Booking.aggregate([
@@ -176,3 +199,6 @@ export const getBookingDetails = asyncHandler(async (req, res) => {
 
   res.json(new ApiResponse(200, result[0], "Booking details fetched successfully"));
 });
+
+
+export default {getBookingDetails, createBooking, cancelBooking}
