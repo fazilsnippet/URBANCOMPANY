@@ -1,6 +1,8 @@
-import { Category } from '../models/category.model.js';
-import  {Product}  from '../models/product.model.js';
+import asyncHandler from 'express-async-handler';
+import { Category } from '../models/Category.model.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { Product } from '../models/Product.model.js';
+import { Service } from '../models/service.model.js';
 import mongoose from 'mongoose'; 
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
 
@@ -125,7 +127,146 @@ const getCategoryById = asyncHandler(async (req, res) => {
 
 
 
+
+ const createCategory = asyncHandler(async (req, res) => {
+  const { name, description, parent: parentCategoryId } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ message: "Category name is required!" });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ message: "Category image is required!" });
+  }
+
+  // Upload image to Cloudinary
+  const result = await uploadOnCloudinary(req.file.path);
+  const imageUrl = result?.secure_url;
+
+  if (!imageUrl) {
+    return res.status(500).json({ message: "Image upload failed" });
+  }
+
+  // Validate parent category and build path
+  let parent = null;
+  let path = [];
+
+  if (parentCategoryId) {
+    const parentCategory = await Category.findById(parentCategoryId);
+    if (!parentCategory) {
+      return res.status(400).json({ message: "Invalid parent category ID" });
+    }
+    parent = parentCategory._id;
+    path = [...parentCategory.path, parentCategory._id];
+  }
+
+  const category = new Category({
+    name,
+    description,
+    parent,
+    path,
+    image: imageUrl
+  });
+
+  await category.save();
+
+  res.status(201).json({
+    message: "Category created successfully",
+    category
+  });
+});
+
+
+ const updateCategory = asyncHandler(async (req, res) => {
+  const { name, description, parent: parentCategoryId, isActive } = req.body;
+  const { categoryId } = req.params;
+
+  let imageUrl;
+  if (req.file) {
+    const result = await uploadOnCloudinary(req.file.path);
+    imageUrl = result?.secure_url;
+    if (!imageUrl) {
+      return res.status(500).json({ message: "Image upload failed" });
+    }
+  }
+
+  // Validate parent category and build path
+  let path = [];
+  if (parentCategoryId) {
+    const parentCategory = await Category.findById(parentCategoryId);
+    if (!parentCategory) {
+      return res.status(400).json({ message: "Invalid parent category ID" });
+    }
+    path = [...parentCategory.path, parentCategory._id];
+  }
+
+  const updates = {
+    name,
+    description,
+    parent: parentCategoryId || null,
+    path,
+    isActive
+  };
+
+  if (imageUrl) updates.image = imageUrl;
+
+  const updatedCategory = await Category.findByIdAndUpdate(categoryId, updates, {
+    new: true,
+    runValidators: true
+  });
+
+  if (!updatedCategory) {
+    return res.status(404).json({ message: "Category not found" });
+  }
+
+  res.status(200).json({
+    message: "Category updated successfully",
+    category: updatedCategory
+  });
+});
+
+
+
+ const softDeleteCategory = asyncHandler(async (req, res) => {
+  const { categoryId } = req.params;
+
+  const category = await Category.findById(categoryId);
+  if (!category) {
+    return res.status(404).json({ message: "Category not found" });
+  }
+
+  // 1. Get all descendants
+  const descendants = await getAllDescendantCategories(categoryId);
+  const categoryIds = [categoryId, ...descendants.map(c => c._id)];
+
+  // 2. Check if any products/services belong to these categories
+  const products = await Product.find({ mainCategory: { $in: categoryIds } });
+  const services = await Service.find({ mainCategory: { $in: categoryIds } });
+
+  if (products.length > 0 || services.length > 0) {
+    return res.status(400).json({
+      message: "Cannot deactivate category tree with associated products or services",
+      productsCount: products.length,
+      servicesCount: services.length
+    });
+  }
+
+  // 3. Soft delete category + subcategories
+  await Category.updateMany(
+    { _id: { $in: categoryIds } },
+    { $set: { isActive: false } }
+  );
+
+  res.status(200).json({
+    message: "Category and its subcategories deactivated successfully",
+    deactivatedCategories: categoryIds
+  });
+});
+
 export {
+  softDeleteCategory,
+  updateCategory,
+  createCategory,
   getAllCategories,
   getCategoryById,
 };

@@ -1,10 +1,9 @@
 import  ApiError  from "../utils/ApiError.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
-import { Partner } from "../models/partner.model.js";
+import { PartnerProfile } from "../models/partnerProfile.model.js";
 import { Admin } from "../models/admin.model.js";
-
+import asyncHandler from "../utils/asyncHandler.js";
 // User middleware
 export const verifyUser = asyncHandler(async (req, res, next) => {
   const token = req.cookies?.userToken || req.header("Authorization")?.replace("Bearer ", "");
@@ -28,7 +27,7 @@ export const verifyPartner = asyncHandler(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.PARTNER_ACCESS_SECRET);
-    const partner = await Partner.findById(decoded?.id).select("-password");
+    const partner = await PartnerProfile.findById(decoded?.id).select("-password");
     if (!partner) throw new ApiError(401, "Unauthorized: Invalid partner");
     req.partner = partner;
     next();

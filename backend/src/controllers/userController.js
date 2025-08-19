@@ -10,11 +10,6 @@ import { OTP } from "../models/otp.model.js";
 import { generateOtp } from "../utils/generateOtp.js";
 import { sendEmail } from "../utils/sendEmail.js";
 
-
-
-
-
-
 export const generateAccessTokenAndRefreshToken = async (userId) => {
   if (!userId || userId.length === 0 ) throw new ApiError(400, "User ID is required to generate tokens");
 
@@ -90,7 +85,7 @@ const registerUser = asyncHandler(async (req, res) => {
     else throw new ApiError(500, "Avatar upload failed");
   }
 
-  // ✅ Handle addresses (if sent as string in multipart/form-data)
+  //   Handle addresses (if sent as string in multipart/form-data)
   if (typeof addresses === "string") {
     try {
       addresses = JSON.parse(addresses);
@@ -99,7 +94,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
   }
 
-  // ✅ Ensure addresses is an array (even if empty)
+  //   Ensure addresses is an array (even if empty)
   if (!Array.isArray(addresses)) {
     addresses = [];
   }

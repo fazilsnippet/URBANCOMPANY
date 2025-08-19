@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+import { AddressSchema } from "./user.model.js";
 const orderSchema = new mongoose.Schema({
   user:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   items: [{
@@ -9,7 +11,7 @@ const orderSchema = new mongoose.Schema({
   amount: { subTotal: Number, discount: Number, tax: Number, shipping: Number, grandTotal: Number, currency: { type: String,enum:["INR"], default: 'INR' } },
   status: { type: String, enum: ['created','paid','shipped','delivered','cancelled','refunded'], default: 'created' },
   payment: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
-  shippingAddress: addressSchema,
+  shippingAddress: AddressSchema,
   notes: String
 }, { timestamps: true });
 

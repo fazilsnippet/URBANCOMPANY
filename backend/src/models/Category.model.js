@@ -48,15 +48,15 @@
 
 // export const Category = mongoose.model("Category", categorySchema);
 
-
+import mongoose from "mongoose";
 const categorySchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true },
+  description: { type: String, trim: true }, //   Added
+  image: { type: String }, //   Added
   parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
-  path: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }], // ancestors (root..parent)
+  path: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 
-categorySchema.index({ parent: 1 });
-categorySchema.index({ path: 1 });
-export const Category = mongoose.model('Category', categorySchema);
+ export const Category = mongoose.model("Category", categorySchema);

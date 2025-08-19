@@ -1,20 +1,17 @@
 import slugify from "slugify";
 import { Service } from "../models/service.model.js";
-import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+import  ApiError  from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/apiResponce.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import uploadOnCloudinary from "../utils/cloudinary.js";
 
-/**
- * @desc    Create a new service
- */
- const createService = asyncHandler(async (req, res) => {
+const createService = asyncHandler(async (req, res) => {
   const {
     title,
     partner,
-    mainCategory,
-    suCategories,
+    mainCategoryId,
+    suCategoryIds,
     description,
-    images,
     pricing,
     durationMins,
     locationType,
@@ -22,36 +19,58 @@ import asyncHandler from "../utils/asyncHandler.js";
     geo,
   } = req.body;
 
-  if (!title || !partner || !mainCategory || !pricing?.amount) {
+  // ✅ Required fields check
+  if (!title || !partner || !mainCategoryId || !pricing || !pricing.amount) {
     throw new ApiError(400, "Missing required fields");
   }
 
+  // ✅ Upload images to Cloudinary
+  let images = [];
+  if (req.files && req.files.length > 0) {
+    if (req.files.length > 10) {
+      throw new ApiError(400, "You can upload a maximum of 10 images");
+    }
+    const uploadResults = await Promise.all(
+      req.files.map(file => uploadOnCloudinary(file.path))
+    );
+    images = uploadResults.map(result => result.secure_url);
+  }
+
+  // ✅ Generate slug
   const slug = slugify(title, { lower: true, strict: true });
 
-  const service = await Service.create({
-    title,
-    slug,
-    partner,
-    mainCategory,
-    suCategories,
-    description,
-    images,
-    pricing,
-    durationMins,
-    locationType,
-    address,
-    geo,
-  });
+  let service;
+  try {
+    service = await Service.create({
+      title,
+      slug,
+      partner,
+      mainCategoryId,
+      suCategoryIds,
+      description,
+      pricing,
+      durationMins,
+      locationType,
+      address,
+      geo,
+      images, // ✅ Save Cloudinary URLs, not local paths
+    });
+  } catch (err) {
+    // ✅ Handle duplicate slug error
+    if (err.code === 11000 && err.keyPattern?.slug) {
+      throw new ApiError(400, "A service with this title already exists");
+    }
+    throw err;
+  }
 
   return res
     .status(201)
     .json(new ApiResponse(201, service, "Service created successfully"));
 });
 
-/**
- * @desc    Update a service
- */
- const updateService = asyncHandler(async (req, res) => {
+
+
+const updateService = asyncHandler(async (req, res) => {
   const { serviceId } = req.params;
 
   let service = await Service.findById(serviceId);
@@ -62,10 +81,33 @@ import asyncHandler from "../utils/asyncHandler.js";
     req.body.slug = slugify(req.body.title, { lower: true, strict: true });
   }
 
-  service = await Service.findByIdAndUpdate(id, req.body, { new: true });
+  // ✅ Handle images
+  let updatedImages = service.images || [];
+
+  if (req.files && req.files.length > 0) {
+    // Check total count (old + new ≤ 10)
+    if (updatedImages.length + req.files.length > 10) {
+      throw new ApiError(400, "You can upload a maximum of 10 images per service");
+    }
+
+    const uploadResults = await Promise.all(
+      req.files.map(file => uploadOnCloudinary(file.path))
+    );
+
+    const newImages = uploadResults.map(result => result.secure_url);
+    updatedImages = [...updatedImages, ...newImages]; // Append new ones
+  }
+
+  // ✅ Apply updates
+  service = await Service.findByIdAndUpdate(
+    serviceId,
+    { ...req.body, images: updatedImages },
+    { new: true }
+  );
 
   return res.json(new ApiResponse(200, service, "Service updated successfully"));
 });
+
 
 /**
  * @desc    Delete a service
@@ -160,4 +202,4 @@ import asyncHandler from "../utils/asyncHandler.js";
 });
 
 
-export default {createService, getServiceById, getAllServices, getServicesByCategory, deleteService, updateService, toggleServiceActive}
+export  {createService, getServiceById, getAllServices, getServicesByCategory, deleteService, updateService, toggleServiceActive}

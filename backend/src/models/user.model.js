@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken"; // <-- don't forget this
+
+// Address Schema
 const AddressSchema = new mongoose.Schema({
   label: { type: String, required: true }, // e.g., Home, Office
   line1: { type: String, required: true },
@@ -9,22 +12,30 @@ const AddressSchema = new mongoose.Schema({
   pincode: { type: String, required: true },
   location: {
     type: { type: String, enum: ["Point"], default: "Point" },
-    coordinates: { type: [Number], default: [0, 0] },
+    coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]
   },
   isDefault: { type: Boolean, default: false },
 });
 
+// Optional: Add geo index for queries like "find nearest"
+AddressSchema.index({ location: "2dsphere" });
 
+// Custom validator to limit addresses array to 5
+function arrayLimit(val) {
+  return val.length <= 5;
+}
+
+// User Schema
 const userSchema = new mongoose.Schema(
   {
-    avatar: {
-      type: String,
-    }, 
-phone:{
-  type: Number ,
-  required:true,
-  unique:true,
-},
+    avatar: { type: String },
+
+    phone: {
+      type: Number,
+      required: true,
+      unique: true,
+    },
+
     name: {
       type: String,
       required: [true, "name is required"],
@@ -43,39 +54,37 @@ phone:{
         "Please provide a valid email address",
       ],
     },
+
     password: {
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters long"],
     },
 
-    passwordResetToken: {
+    passwordResetToken: { type: String, default: null },
+    passwordResetExpires: { type: Date, default: null },
+    refreshToken: { type: String, default: null },
+
+    isBanned: { type: Boolean, default: false },
+
+    role: {
       type: String,
-      default: null,
+      enum: ["customer", "partner"],
+      default: "customer",
     },
-    passwordResetExpires: {
-      type: Date,
-      default: null,
+
+    addresses: {
+      type: [AddressSchema],
+      validate: [arrayLimit, "{PATH} exceeds the limit of 5"],
     },
-    refreshToken: {
-  type: String,
-  default: null
-},
-    isBanned:{
-        type: Boolean,
-      default: false
-    },      
-role: { type: String, enum: ["customer", "partner"], default: "customer" },
-  addresses: {
-    type: [AddressSchema],
-    validate: [arrayLimit, '{PATH} exceeds the limit of 5']
-  }    },
+  },
   {
     timestamps: true,
-    versionKey: false 
+    versionKey: false,
   }
 );
 
+/* ------------------------- MIDDLEWARE ------------------------- */
 // Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -83,6 +92,7 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
+/* ------------------------- METHODS ------------------------- */
 // Compare entered password with stored password
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
@@ -92,27 +102,21 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
-      id: this._id.toString(), // Change _id to id
+      id: this._id.toString(),
       email: this.email,
       name: this.name,
     },
     process.env.ACCESS_TOKEN_SECRET,
-    {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1d",
-    }
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1d" }
   );
 };
 
 // Generate Refresh Token
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
-    {
-      id: this._id.toString(),
-    },
+    { id: this._id.toString() },
     process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "30d",
-    }
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "30d" }
   );
 };
 
@@ -127,11 +131,11 @@ userSchema.methods.generatePasswordResetToken = async function () {
   this.passwordResetToken = resetToken;
   this.passwordResetExpires = Date.now() + 3600 * 1000; // 1 hour
 
-  await this.save(); // Ensure changes are saved
+  await this.save();
   return resetToken;
 };
 
-// Set New Password (called after token verification)
+// Set New Password
 userSchema.methods.setNewPassword = async function (newPassword) {
   this.password = await bcrypt.hash(newPassword, 10);
   this.passwordResetToken = null;
@@ -139,47 +143,5 @@ userSchema.methods.setNewPassword = async function (newPassword) {
   await this.save();
 };
 
-export  const User = mongoose.model("User", userSchema);
-
-//new
-
-// import mongoose from 'mongoose';
-// import bcrypt from 'bcrypt';
-
-// const addressSchema = new mongoose.Schema({
-//   label: String,
-//   line1: String,
-//   line2: String,
-//   city: String,
-//   state: String,
-//   country: String,
-//   pincode: String,
-//   location: { type: { type: String, enum: ['Point'] }, coordinates: [Number] } // [lng, lat]
-// }, { _id: false });
-
-// addressSchema.index({ location: '2dsphere' });
-
-// const userSchema = new mongoose.Schema({
-//   name: { type: String, required: true, trim: true },
-//   email: { type: String, lowercase: true, unique: true, sparse: true },
-//   phone: { type: String, unique: true, sparse: true },
-//   passwordHash: { type: String, required: true, select: false },
-//   roles: { type: [String], enum: ['customer','partner','admin'], default: ['customer'] },
-//   avatarUrl: String,
-//   addresses: [addressSchema],
-//   isActive: { type: Boolean, default: true },
-//   passwordChangedAt: Date,
-//   resetTokenHash: { type: String, select: false },
-//   resetTokenExpiresAt: Date,
-//   lastLoginAt: Date
-// }, { timestamps: true });
-
-// userSchema.index({ isActive: 1 });
-// userSchema.methods.verifyPassword = function (pwd) {
-//   return bcrypt.compare(pwd, this.passwordHash);
-// };
-// userSchema.pre('save', async function() {
-//   if (this.isModified('passwordHash')) this.passwordChangedAt = new Date();
-// });
-
-// export const User = mongoose.model('User', userSchema);
+export const User = mongoose.model("User", userSchema);
+export { AddressSchema };

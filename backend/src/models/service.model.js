@@ -9,11 +9,10 @@
 // }, { timestamps: true });
 
 // export default mongoose.model('Service', serviceSchema);
-
-
+import mongoose from "mongoose";
 const serviceSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
-  sg: { type: String, unique: true },
+  slug: { type: String, unique: true },
   partner: { type: mongoose.Schema.Types.ObjectId, ref: 'PartnerProfile', required: true },
   mainCategory: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   suCategories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category',  }],
@@ -28,7 +27,9 @@ const serviceSchema = new mongoose.Schema({
   durationMins: Number,
   locationType: { type: String, enum: ['onsite','online'], default: 'onsite' },
   address: String,
-  geo: { type: { type: String, enum: ['Point'] }, coordinates: [Number] }, // [lng,lat]
+  // geo: { type: { type: String, enum: ['Point'] }, coordinates: [Number] }, // [lng,lat]
+    geo: { type: { type: String, enum: ['Point'] }, coordinates: [Number] }, // [lng,lat]
+
   avgRating: { type: Number, default: 0 }, ratingCount: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });

@@ -9,7 +9,7 @@
 
 // export default mongoose.model('Slot', SlotSchema);
 
-
+import mongoose from "mongoose";
 const slotSchema = new mongoose.Schema({
   service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true },
   date: { type: Date, required: true },
