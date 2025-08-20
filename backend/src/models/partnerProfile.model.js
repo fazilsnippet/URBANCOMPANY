@@ -61,7 +61,7 @@ required:false,
     },
     coordinates: {
       type: [[[Number]]], // array of arrays of coordinates
-      required: true
+      required: false
     }
   }],
   rating: {

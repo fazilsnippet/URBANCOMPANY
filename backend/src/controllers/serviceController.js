@@ -10,7 +10,7 @@ const createService = asyncHandler(async (req, res) => {
     title,
     partner,
     mainCategoryId,
-    suCategoryIds,
+    suCategoryIds = [],
     description,
     pricing,
     durationMins,
@@ -22,6 +22,31 @@ const createService = asyncHandler(async (req, res) => {
   // ✅ Required fields check
   if (!title || !partner || !mainCategoryId || !pricing || !pricing.amount) {
     throw new ApiError(400, "Missing required fields");
+  }
+
+  // ✅ Check partner exists
+  const partnerExists = await PartnerProfile.findById(partner);
+  if (!partnerExists) {
+    throw new ApiError(404, "Partner not found");
+  }
+
+  // ✅ Check main category exists
+  const mainCategory = await Category.findById(mainCategoryId);
+  if (!mainCategory) {
+    throw new ApiError(404, "Main category not found");
+  }
+
+  // ✅ Check subcategories (if provided)
+  let validSubCategories = [];
+  if (suCategoryIds.length > 0) {
+    validSubCategories = await Category.find({
+      _id: { $in: suCategoryIds },
+      parentCategory: mainCategoryId, // ensure subcategory belongs to mainCategory
+    });
+
+    if (validSubCategories.length !== suCategoryIds.length) {
+      throw new ApiError(400, "One or more subcategories are invalid");
+    }
   }
 
   // ✅ Upload images to Cloudinary
@@ -45,18 +70,17 @@ const createService = asyncHandler(async (req, res) => {
       title,
       slug,
       partner,
-      mainCategoryId,
-      suCategoryIds,
+      mainCategory: mainCategoryId,   // 🔹 fixed field name
+      suCategories: suCategoryIds,    // 🔹 fixed field name
       description,
       pricing,
       durationMins,
       locationType,
       address,
       geo,
-      images, // ✅ Save Cloudinary URLs, not local paths
+      images,
     });
   } catch (err) {
-    // ✅ Handle duplicate slug error
     if (err.code === 11000 && err.keyPattern?.slug) {
       throw new ApiError(400, "A service with this title already exists");
     }

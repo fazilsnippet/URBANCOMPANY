@@ -1,11 +1,10 @@
-import asyncHandler from 'express-async-handler';
+// import asyncHandler from 'express-async-handler';
 import { Category } from '../models/Category.model.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
 import { Product } from '../models/Product.model.js';
 import { Service } from '../models/service.model.js';
 import mongoose from 'mongoose'; 
-import { uploadOnCloudinary } from '../utils/cloudinary.js';
-
+import  uploadOnCloudinary  from '../utils/cloudinary.js';
+import asyncHandler from '../utils/asyncHandler.js';
 
 
 
@@ -88,6 +87,18 @@ const getAllCategories = asyncHandler(async (req, res) => {
 //     }
 //   });
 
+const getCategoryBySlug = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const category = await Category.findOne({ slug }).lean();
+
+  if (!category) {
+    return res.status(404).json({ message: "Category not found" });
+  }
+
+  res.status(200).json({ category });
+});
+
 
 const getCategoryById = asyncHandler(async (req, res) => {
   try {
@@ -128,7 +139,9 @@ const getCategoryById = asyncHandler(async (req, res) => {
 
 
 
- const createCategory = asyncHandler(async (req, res) => {
+import slugify from "slugify";
+
+const createCategory = asyncHandler(async (req, res) => {
   const { name, description, parent: parentCategoryId } = req.body;
 
   if (!name) {
@@ -139,19 +152,26 @@ const getCategoryById = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Category image is required!" });
   }
 
+  // Generate slug
+  const slug = slugify(name, { lower: true, strict: true });
+
+  // Check for slug uniqueness
+  const existing = await Category.findOne({ slug });
+  if (existing) {
+    return res.status(400).json({ message: "Category with this name already exists!" });
+  }
+
   // Upload image to Cloudinary
   const result = await uploadOnCloudinary(req.file.path);
   const imageUrl = result?.secure_url;
-
   if (!imageUrl) {
     return res.status(500).json({ message: "Image upload failed" });
   }
 
-  // Validate parent category and build path
   let parent = null;
   let path = [];
 
-  if (parentCategoryId) {
+  if (parentCategoryId && parentCategoryId !== "self") {
     const parentCategory = await Category.findById(parentCategoryId);
     if (!parentCategory) {
       return res.status(400).json({ message: "Invalid parent category ID" });
@@ -160,8 +180,9 @@ const getCategoryById = asyncHandler(async (req, res) => {
     path = [...parentCategory.path, parentCategory._id];
   }
 
-  const category = new Category({
+  let category = new Category({
     name,
+    slug,
     description,
     parent,
     path,
@@ -170,11 +191,19 @@ const getCategoryById = asyncHandler(async (req, res) => {
 
   await category.save();
 
+  if (parentCategoryId === "self") {
+    category.parent = category._id;
+    category.path = [category._id];
+    await category.save();
+  }
+
   res.status(201).json({
     message: "Category created successfully",
     category
   });
 });
+
+
 
 
  const updateCategory = asyncHandler(async (req, res) => {
@@ -263,10 +292,32 @@ const getCategoryById = asyncHandler(async (req, res) => {
   });
 });
 
+// PUT /categories/:id/toggle-active
+const toggleCategoryActive = asyncHandler(async (req, res) => {
+  const { categoryId } = req.params;
+
+  const category = await Category.findById(categoryId);
+  if (!category) {
+    throw new ApiError(404, "Category not found");
+  }
+
+  category.isActive = !category.isActive;  // toggle
+  await category.save();
+
+  res.json(new ApiResponse(
+    200,
+    category,
+    `Category ${category.isActive ? "activated" : "deactivated"} successfully`
+  ));
+});
+
+
 export {
+  toggleCategoryActive,
   softDeleteCategory,
   updateCategory,
   createCategory,
   getAllCategories,
   getCategoryById,
+  getCategoryBySlug,
 };

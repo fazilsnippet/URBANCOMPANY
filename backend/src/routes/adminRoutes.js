@@ -31,8 +31,17 @@ import {
   updateService,
   deleteService,
   toggleServiceActive,
+  getAllServices,
 } from "../controllers/serviceController.js";
 
+//Category Controllers
+import {
+    createCategory,
+    softDeleteCategory,
+    updateCategory,
+    toggleCategoryActive,
+    getAllCategories
+} from "../controllers/categoryController.js"
 const adminRoutes = express.Router();
 
 // adminRoutes.use(verifyAdmin);
@@ -46,6 +55,7 @@ adminRoutes.patch("/partner/:partnerId/toggle", togglePartnerActive);
 adminRoutes.delete("/partner/:partnerId/delete", deletePartnerProfile);
 
 /* ------------------------- SERVICE ROUTES ------------------------- */
+adminRoutes.get("/service/all", getAllServices);
 adminRoutes.post("/service/create", upload.array("images", 10), createService);
 adminRoutes.patch("/service/:serviceId/update", upload.array("images", 10), updateService);
 adminRoutes.patch("/service/:serviceId/toggle", toggleServiceActive);
@@ -59,5 +69,13 @@ adminRoutes.delete("/product/:productId/delete", deleteProduct);
 /* ------------------------- BOOKING ROUTES ------------------------- */
 adminRoutes.get("/booking/all", getAllBookingsAdmin);
 adminRoutes.get("/booking/:bookingId", getBookingByIdAdmin);
+
+/* ------------------------- CATEGORY ROUTES ------------------------- */
+adminRoutes.post("/category/create", upload.single("imageUrl"),createCategory);
+adminRoutes.get("/category/all", getAllCategories);
+adminRoutes.patch("/category/:categoryId/update", upload.single("imageUrl"), updateCategory);
+adminRoutes.patch("/category/:categoryId/active", toggleCategoryActive);
+
+
 
 export default adminRoutes;

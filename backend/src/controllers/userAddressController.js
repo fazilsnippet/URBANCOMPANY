@@ -1,5 +1,5 @@
-import { User } from "../models/user.model";
-
+import { User } from "../models/user.model.js";
+import asyncHandler from "../utils/asyncHandler.js";
 const addUserAddress = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
   if (!userId) throw new ApiError(401, "Unauthorized, please login");
@@ -115,4 +115,4 @@ const updateUserAddress = asyncHandler(async (req, res) => {
 });
 
 
-export default {deleteUserAddress, addUserAddress, switchUserAddress, updateUserAddress}
+export  {deleteUserAddress, addUserAddress, switchUserAddress, updateUserAddress}

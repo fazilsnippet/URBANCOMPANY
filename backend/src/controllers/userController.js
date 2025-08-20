@@ -1,15 +1,14 @@
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import { ApiError } from "../utils/ApiError.js";
+import  ApiError  from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiResponse } from "../utils/apiResponce.js";
 dotenv.config("../../.env");
-import asyncHandler from "express-async-handler";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import  uploadOnCloudinary  from "../utils/cloudinary.js";
 import { OTP } from "../models/otp.model.js"; 
 import { generateOtp } from "../utils/generateOtp.js";
 import { sendEmail } from "../utils/sendEmail.js";
-
+import asyncHandler from "../utils/asyncHandler.js";
 export const generateAccessTokenAndRefreshToken = async (userId) => {
   if (!userId || userId.length === 0 ) throw new ApiError(400, "User ID is required to generate tokens");
 
@@ -55,71 +54,105 @@ export const generateAccessTokenAndRefreshToken = async (userId) => {
 });
 
 
-const registerUser = asyncHandler(async (req, res) => {
-  let { email, name, password, phone, otp, addresses } = req.body;
+// const registerUser = asyncHandler(async (req, res) => {
+//   let { email, name, password, phone, otp, addresses } = req.body;
 
-  // Validate required fields
-  if ([email, name, password, otp].some((field) => !field?.trim())) {
+//   // Validate required fields
+//   if ([email, name, password, otp].some((field) => !field?.trim())) {
+//     throw new ApiError(400, "All fields are required");
+//   }
+
+//   // Check OTP
+//   const otpRecord = await OTP.findOne({ email, otp, purpose: "signup" });
+//   if (!otpRecord) throw new ApiError(400, "Invalid OTP");
+//   if (otpRecord.expiresAt < new Date()) throw new ApiError(400, "OTP expired");
+
+//   // Check if user exists
+//   const existedUser = await User.findOne({
+//     $or: [{ name }, { email }, { phone }]
+//   });
+//   if (existedUser) throw new ApiError(409, "User already exists");
+
+//   // Delete OTP record
+//   await OTP.deleteMany({ email, purpose: "signup" });
+
+//   // Avatar upload
+//   let avatarUrl = null;
+//   if (req.file) {
+//     const cloudinaryResult = await uploadOnCloudinary(req.file.path);
+//     if (cloudinaryResult?.secure_url) avatarUrl = cloudinaryResult.secure_url;
+//     else throw new ApiError(500, "Avatar upload failed");
+//   }
+
+//   //   Handle addresses (if sent as string in multipart/form-data)
+//   if (typeof addresses === "string") {
+//     try {
+//       addresses = JSON.parse(addresses);
+//     } catch {
+//       throw new ApiError(400, "Invalid addresses format");
+//     }
+//   }
+
+//   //   Ensure addresses is an array (even if empty)
+//   if (!Array.isArray(addresses)) {
+//     addresses = [];
+//   }
+
+//   // Create user
+//   const user = await User.create({
+//     email,
+//     name,
+//     password,
+//     phone,
+//     avatar: avatarUrl,
+//     addresses // will save as array of objects
+//   });
+
+//   // Get safe user object
+//   const userWithoutPassword = await User.findById(user._id).select(
+//     "-password -refreshToken"
+//   );
+
+//   return res.status(201).json({
+//     user: userWithoutPassword,
+//     message: "User registered successfully",
+//   });
+// });
+
+
+
+
+const registerUser = asyncHandler(async (req, res) => {
+  const {  email, name, password, phone , addresses} = req.body;
+
+  if ([ email, name, password].some((field) => field?.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
-  // Check OTP
-  const otpRecord = await OTP.findOne({ email, otp, purpose: "signup" });
-  if (!otpRecord) throw new ApiError(400, "Invalid OTP");
-  if (otpRecord.expiresAt < new Date()) throw new ApiError(400, "OTP expired");
-
-  // Check if user exists
   const existedUser = await User.findOne({
-    $or: [{ name }, { email }, { phone }]
+    $or: [{ name }, { email }],
   });
-  if (existedUser) throw new ApiError(409, "User already exists");
 
-  // Delete OTP record
-  await OTP.deleteMany({ email, purpose: "signup" });
-
-  // Avatar upload
-  let avatarUrl = null;
-  if (req.file) {
-    const cloudinaryResult = await uploadOnCloudinary(req.file.path);
-    if (cloudinaryResult?.secure_url) avatarUrl = cloudinaryResult.secure_url;
-    else throw new ApiError(500, "Avatar upload failed");
+  if (existedUser) {
+    throw new ApiError(409, "User already exists");
   }
 
-  //   Handle addresses (if sent as string in multipart/form-data)
-  if (typeof addresses === "string") {
-    try {
-      addresses = JSON.parse(addresses);
-    } catch {
-      throw new ApiError(400, "Invalid addresses format");
-    }
-  }
-
-  //   Ensure addresses is an array (even if empty)
-  if (!Array.isArray(addresses)) {
-    addresses = [];
-  }
-
-  // Create user
   const user = await User.create({
-    email,
     name,
+    email,
     password,
     phone,
-    avatar: avatarUrl,
-    addresses // will save as array of objects
+    addresses,
   });
 
-  // Get safe user object
-  const userWithoutPassword = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
+  const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
-  return res.status(201).json({
-    user: userWithoutPassword,
-    message: "User registered successfully",
-  });
-});
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong while registering the user");
+  }
 
+return res
+  .json(new ApiResponse(201, { user: createdUser, accessToken:createdUser.accessToken }, "User registered successfully"));});
 
 
 
