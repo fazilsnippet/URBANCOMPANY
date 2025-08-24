@@ -13,13 +13,13 @@ export const generateAccessTokenAndRefreshToken = async (userId) => {
   if (!userId || userId.length === 0 ) throw new ApiError(400, "User ID is required to generate tokens");
 
   const accessToken = jwt.sign(
-    { id: userId },
+    {_id: userId },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "1d" }
   );
 
   const refreshToken = jwt.sign(
-    { id: userId },
+    {_id: userId },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "30d" }
   );
@@ -121,11 +121,17 @@ export const generateAccessTokenAndRefreshToken = async (userId) => {
 
 
 
+const cookieOptions = {
+  httpOnly: true,
+  // secure: process.env.NODE_ENV === "production", // true in production (HTTPS)
+  sameSite: "strict",
+  maxAge: 24 * 60 * 60 * 1000, // 1 day
+};
 
-const registerUser = asyncHandler(async (req, res) => {
-  const {  email, name, password, phone , addresses} = req.body;
+ const registerUser = asyncHandler(async (req, res) => {
+  const { email, name, password, phone, addresses } = req.body;
 
-  if ([ email, name, password].some((field) => field?.trim() === "")) {
+  if ([email, name, password].some((field) => field?.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -151,8 +157,30 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong while registering the user");
   }
 
-return res
-  .json(new ApiResponse(201, { user: createdUser, accessToken:createdUser.accessToken }, "User registered successfully"));});
+  // Generate tokens
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
+
+  // Save refresh token in DB
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  // Set cookies
+  res.cookie("accessToken", accessToken, cookieOptions);
+  res.cookie("refreshToken", refreshToken, {
+    ...cookieOptions,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  });
+
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      { user: createdUser, accessToken },
+      "User registered successfully"
+    )
+  );
+});
+
 
 
 

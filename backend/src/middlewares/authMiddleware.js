@@ -6,17 +6,17 @@ import { Admin } from "../models/admin.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 // User middleware
 export const verifyUser = asyncHandler(async (req, res, next) => {
-  const token = req.cookies?.userToken || req.header("Authorization")?.replace("Bearer ", "");
+  const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
   if (!token) throw new ApiError(401, "Unauthorized: No token provided");
 
   try {
-    const decoded = jwt.verify(token, process.env.USER_ACCESS_SECRET);
-    const user = await User.findById(decoded?.id).select("-password");
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const user = await User.findById(decoded?._id).select("-password");
     if (!user) throw new ApiError(401, "Unauthorized: Invalid user");
     req.user = user;
     next();
   } catch (err) {
-    throw new ApiError(401, "Unauthorized: Invalid or expired token");
+    throw new ApiError(401, "Unauthorized: Invalid or expired user token");
   }
 });
 
@@ -27,12 +27,12 @@ export const verifyPartner = asyncHandler(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.PARTNER_ACCESS_SECRET);
-    const partner = await PartnerProfile.findById(decoded?.id).select("-password");
+    const partner = await User.findById(decoded?._id).select("-password");
     if (!partner) throw new ApiError(401, "Unauthorized: Invalid partner");
     req.partner = partner;
     next();
   } catch (err) {
-    throw new ApiError(401, "Unauthorized: Invalid or expired token");
+    throw new ApiError(401, "Unauthorized: Invalid or expired partner token");
   }
 });
 
@@ -43,7 +43,7 @@ export const verifyAdmin = asyncHandler(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.ADMIN_ACCESS_SECRET);
-    const admin = await Admin.findById(decoded?.id).select("-password");
+    const admin = await Admin.findById(decoded?._id).select("-password");
     if (!admin) throw new ApiError(401, "Unauthorized: Invalid admin");
     req.admin = admin;
     next();

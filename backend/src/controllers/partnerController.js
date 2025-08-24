@@ -3,11 +3,25 @@ import  asyncHandler  from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/apiResponce.js";
 import slugify from "slugify";
+import { Types } from "mongoose";
+import {User} from "../models/user.model.js"
 
-// Create partner profile
+const isValidObjectId = (id) => Types.ObjectId.isValid(id);
+
+
 const createPartnerProfile = asyncHandler(async (req, res) => {
-  //  Whitelist allowed fields
-  const allowedFields = ["user", "businessName", "about", "serviceAreas", "payout"];
+  // user is always taken from JWT
+ const userId = req.user._id;
+    if (!isValidObjectId(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid User ID create partner.' });
+    }
+  // check if profile already exists
+  const existingProfile = await PartnerProfile.findOne({ user: userId });
+  if (existingProfile) {
+    throw new ApiError(400, "Partner profile already exists for this user");
+  }
+
+  const allowedFields = ["businessName", "about", "serviceAreas", "payout"];
   const data = {};
 
   for (const key of allowedFields) {
@@ -16,40 +30,35 @@ const createPartnerProfile = asyncHandler(async (req, res) => {
     }
   }
 
-  //  Handle avatar upload
+  if (!data.businessName) {
+    throw new ApiError(400, "Business name is required");
+  }
+
+  data.user = userId; // ✅ link logged-in user
+  data.slug = slugify(data.businessName, { lower: true, strict: true });
+
+  if (data.serviceAreas && !Array.isArray(data.serviceAreas)) {
+    throw new ApiError(400, "Invalid serviceAreas format, must be array");
+  }
+
   if (req.file?.path) {
     data.avatar = req.file.path;
   }
 
-  // Required fields check
-  if (!data.user || !data.businessName) {
-    throw new ApiError(400, "User and businessName are required");
-  }
+  let profile = await PartnerProfile.create(data);
 
-  //  Generate slug
-  data.slug = slugify(data.businessName, { lower: true, strict: true });
+  // 🚀 Upgrade user role to "partner"
+  await User.findByIdAndUpdate(userId, { role: "partner" });
 
-  //  Optional: validate serviceAreas format
-  if (data.serviceAreas && !Array.isArray(data.serviceAreas)) {
-    throw new ApiError(400, "Invalid serviceAreas format");
-  }
-
-  let profile;
-  try {
-    profile = await PartnerProfile.create(data);
-  } catch (err) {
-    if (err.code === 11000) {
-      if (err.keyPattern?.user) {
-        throw new ApiError(400, "Profile already exists for this user");
-      }
-      if (err.keyPattern?.slug) {
-        throw new ApiError(400, "Business name already in use, please choose another");
-      }
-    }
-    throw err;
-  }
-
-  res.status(201).json(new ApiResponse(201, profile, "Partner profile created successfully"));
+  res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        profile,
+        "Partner profile created successfully and user upgraded to partner"
+      )
+    );
 });
 
 

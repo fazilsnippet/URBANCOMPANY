@@ -102,7 +102,7 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
-      id: this._id.toString(),
+      _id: this._id.toString(),
       email: this.email,
       name: this.name,
     },
@@ -114,7 +114,7 @@ userSchema.methods.generateAccessToken = function () {
 // Generate Refresh Token
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
-    { id: this._id.toString() },
+    { _id: this._id.toString() },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "30d" }
   );
@@ -123,7 +123,7 @@ userSchema.methods.generateRefreshToken = function () {
 // Generate Password Reset Token
 userSchema.methods.generatePasswordResetToken = async function () {
   const resetToken = jwt.sign(
-    { id: this._id.toString() },
+    { _id: this._id.toString() },
     process.env.RESET_TOKEN_SECRET || "reset_secret",
     { expiresIn: "1h" }
   );

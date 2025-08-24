@@ -1,18 +1,41 @@
 
+// import React from 'react';
+// import { createRoot } from 'react-dom/client';
+// import { BrowserRouter } from 'react-router-dom';
+// import { Provider } from 'react-redux';
+// import App from './App';
+// import { store } from './app/store';
+// import './index.css';
+
+// createRoot(document.getElementById('root')).render(
+//   <React.StrictMode>
+//     <Provider store={store}>
+//       <BrowserRouter>
+//         <App />
+//       </BrowserRouter>
+//     </Provider>
+//   </React.StrictMode>
+// );
+
+
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import App from './App';
+import { BrowserRouter } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { store } from './app/store';
-import './index.css';
+import App from './App';
+import './styles/index.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
       <BrowserRouter>
         <App />
+        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       </BrowserRouter>
     </Provider>
   </React.StrictMode>
 );
+src/App.jsx
