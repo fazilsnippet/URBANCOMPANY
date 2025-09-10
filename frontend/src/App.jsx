@@ -73,121 +73,160 @@
 
 
 
-import React, { Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
-import AdminLayout from './layouts/AdminLayout';
-import PrivateRoute from './routes/PrivateRoute';
-import { useLazyGetMeQuery } from './features/auth/authApi';
-import FullscreenSpinner from './components/common/FullscreenSpinner';
+// import React, { Suspense, useEffect } from 'react';
+// import { Routes, Route, Navigate } from 'react-router-dom';
+// import MainLayout from './layouts/MainLayout';
+// import AdminLayout from './layouts/AdminLayout';
+// import PrivateRoute from './routes/PrivateRoute';
+// import { useLazyGetMeQuery } from './features/auth/authApi';
+// import FullscreenSpinner from './components/common/FullscreenSpinner';
 
 // Lazy pages
-const Home = React.lazy(() => import('./pages/catalog/Home'));
-const Login = React.lazy(() => import('./pages/auth/Login'));
-const Register = React.lazy(() => import('./pages/auth/Register'));
-const Forgot = React.lazy(() => import('./pages/auth/ForgotPassword'));
-const Profile = React.lazy(() => import('./pages/account/Profile'));
-const Addresses = React.lazy(() => import('./pages/account/Addresses'));
-const ProductList = React.lazy(() => import('./pages/catalog/ProductList'));
-const ProductDetail = React.lazy(() => import('./pages/catalog/ProductDetail'));
-const CartPage = React.lazy(() => import('./pages/cart/CartPage'));
-const WishlistPage = React.lazy(() => import('./pages/cart/WishlistPage'));
-const Checkout = React.lazy(() => import('./pages/checkout/Checkout'));
-const Orders = React.lazy(() => import('./pages/orders/Orders'));
-const PartnerDashboard = React.lazy(() => import('./pages/partner/Dashboard'));
-const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'));
-const NotFound = React.lazy(() => import('./pages/NotFound'));
+// const Login = React.lazy(() => import('./Pages/auth/login'));
+// const Home = React.lazy(() => import('./pages/catalog/Home'));
+// const Register = React.lazy(() => import('./pages/auth/Register'));
+// const Forgot = React.lazy(() => import('./pages/auth/ForgotPassword'));
+// const Profile = React.lazy(() => import('./pages/account/Profile'));
+// const Addresses = React.lazy(() => import('./pages/account/Addresses'));
+// const ProductList = React.lazy(() => import('./pages/catalog/ProductList'));
+// const ProductDetail = React.lazy(() => import('./pages/catalog/ProductDetail'));
+// const CartPage = React.lazy(() => import('./pages/cart/CartPage'));
+// const WishlistPage = React.lazy(() => import('./pages/cart/WishlistPage'));
+// const Checkout = React.lazy(() => import('./pages/checkout/Checkout'));
+// const Orders = React.lazy(() => import('./pages/orders/Orders'));
+// const PartnerDashboard = React.lazy(() => import('./pages/partner/Dashboard'));
+// const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'));
+// const NotFound = React.lazy(() => import('./pages/NotFound'));
 
-export default function App() {
-  const [bootstrap] = useLazyGetMeQuery();
+// const [bootstrap] = useLazyGetMeQuery();
+// export default function App() {
 
-  useEffect(() => {
-    bootstrap(); // restore session if cookie exists
-  }, [bootstrap]);
+  // useEffect(() => {
+  //   bootstrap(); // restore session if cookie exists
+  // }, [bootstrap]);
 
-  return (
-    <Suspense fallback={<FullscreenSpinner />}>
-      <Routes>
-        <Route element={<MainLayout />}>
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-          <Route path="forgot-password" element={<Forgot />} />
-
+  // return (
+  //   <Suspense fallback={<FullscreenSpinner />}>
+  //     <Routes>
+        {/* <Route element={<MainLayout />}> */}
+          {/* <Route index element={<Home />} /> */}
+          {/* <Route path="register" element={<Register />} />
+          <Route path="forgot-password" element={<Forgot />} /> */}
+{/* 
           <Route
-            path="profile"
-            element={
-              <PrivateRoute roles={['USER', 'ADMIN', 'PARTNER']}>
-                <Profile />
-              </PrivateRoute>
+          path="profile"
+          element={
+            <PrivateRoute roles={['USER', 'ADMIN', 'PARTNER']}>
+            <Profile />
+            </PrivateRoute>
             }
-          />
-          <Route
+            />
+            <Route
             path="addresses"
             element={
               <PrivateRoute roles={['USER', 'ADMIN', 'PARTNER']}>
-                <Addresses />
+              <Addresses />
               </PrivateRoute>
-            }
-          />
+              }
+              /> */}
 
-          <Route path="products" element={<ProductList />} />
+          {/* <Route path="products" element={<ProductList />} />
           <Route path="products/:id" element={<ProductDetail />} />
-
+          
           <Route path="cart" element={<CartPage />} />
           <Route
-            path="wishlist"
-            element={
-              <PrivateRoute roles={['USER', 'ADMIN', 'PARTNER']}>
+          path="wishlist"
+          element={
+            <PrivateRoute roles={['USER', 'ADMIN', 'PARTNER']}>
                 <WishlistPage />
-              </PrivateRoute>
-            }
-          />
-
+                </PrivateRoute>
+                }
+          /> */}
+{/* 
           <Route
             path="checkout"
             element={
               <PrivateRoute roles={['USER', 'ADMIN', 'PARTNER']}>
-                <Checkout />
+              <Checkout />
               </PrivateRoute>
-            }
-          />
-          <Route
-            path="orders"
+              }
+              />
+              <Route
+              path="orders"
             element={
               <PrivateRoute roles={['USER', 'ADMIN', 'PARTNER']}>
-                <Orders />
+              <Orders />
               </PrivateRoute>
-            }
-          />
-        </Route>
+              }
+              />
+              </Route> */}
 
         {/* Partner */}
-        <Route
+        {/* <Route
           path="/partner/*"
           element={
             <PrivateRoute roles={['PARTNER']}>
-              <MainLayout />
+            <MainLayout />
             </PrivateRoute>
-          }
-        >
-          <Route index element={<PartnerDashboard />} />
-        </Route>
-
-        {/* Admin */}
-        <Route
+            }
+            >
+            <Route index element={<PartnerDashboard />} />
+            </Route>
+            
+            {/* Admin */}
+        {/* <Route
           path="/admin/*"
           element={
             <PrivateRoute roles={['ADMIN']}>
               <AdminLayout />
             </PrivateRoute>
           }
-        >
-          <Route index element={<AdminDashboard />} />
+        // > */}
+           {/* <Route index element={<AdminDashboard />} />
         </Route>
 
-        <Route path="*" element={<NotFound />} />
+         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
+} } */}
+
+
+
+import React, { Suspense, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import  Header  from './components/Header.jsx';
+import { Skeleton } from './components/skeleton';
+import Beauty from './Pages/beauty.jsx';
+const Login = React.lazy(() => import('./pages/Login'));
+import Homepage from './Pages/Home';
+
+
+const  App=()=> {
+
+  useEffect(() => {
+    document.documentElement.lang = 'en';
+  }, []);
+
+  return (
+    <div className="w-full min-h-screen  bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+      <Header />
+    
+      <main id="content" className="  px-4 py-6">
+        <Suspense fallback={<Skeleton />}>
+          <AnimatePresence mode="wait">
+           
+              <Routes>
+                <Route path="/" element={<Homepage />} />   
+                <Route path="/beauty" element={<Beauty />} />   
+
+              </Routes>
+          </AnimatePresence>
+        </Suspense>
+      </main>
+    </div>
+  );
 }
+
+export default App

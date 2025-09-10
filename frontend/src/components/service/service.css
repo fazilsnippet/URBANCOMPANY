@@ -1,0 +1,54 @@
+.service-card {
+  transition: all 0.3s ease;
+}
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.category-btn {
+  transition: all 0.2s ease;
+}
+
+
+
+
+
+/* Horizontal scrollbar for carousel */
+.carousel-container::-webkit-scrollbar {
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+.carousel-container::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 4px;
+}
+.carousel-container::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+
+/* Vertical scrollbar for the whole page or parent container */
+::-webkit-scrollbar {
+  width: 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+
+/* Firefox support */
+.carousel-container {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb #f3f4f6;
+}
+body, html {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb #f3f4f6;
+}
+

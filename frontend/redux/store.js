@@ -1,16 +1,17 @@
 
 import { configureStore } from '@reduxjs/toolkit';
-import { baseApi } from './baseApi';
-import authReducer from '../features/auth/authSlice';
-import cartReducer from '../features/cart/cartSlice';
+// import { baseApi } from './baseApi';
+import authReducer from '../src/redux/features/authSliceReducer.js';
+// import cartReducer from '../features/cart/cartSlice';
 
 export const store = configureStore({
   reducer: {
-    [baseApi.reducerPath]: baseApi.reducer,
+    // [baseApi.reducerPath]: baseApi.reducer,
     auth: authReducer,
-    cart: cartReducer,
+
+    // cart: cartReducer,
   },
-  middleware: (getDefault) =>
-    getDefault({ serializableCheck: false }).concat(baseApi.middleware),
+  // middleware: (getDefault) =>
+  //   getDefault({ serializableCheck: false }).concat(baseApi.middleware),
 });
 
